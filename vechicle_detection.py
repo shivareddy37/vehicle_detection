@@ -4,6 +4,7 @@ import numpy as np
 import cv2
 import glob
 import time
+from math import ceil
 from sklearn.svm import LinearSVC
 from sklearn.preprocessing import StandardScaler
 from skimage.feature import hog
@@ -15,19 +16,31 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.externals import joblib
 from scipy.ndimage.measurements import label
 
-# parametsrs for different feature extraction techniques
-color_space = 'YCrCb' # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
-orient = 32  # HOG orientations
-pix_per_cell = 16 # HOG pixels per cell
+# # parametsrs2 for different feature extraction techniques
+# color_space = 'YCrCb' # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
+# orient = 32  # HOG orientations
+# pix_per_cell = 16 # HOG pixels per cell
+# cell_per_block = 2 # HOG cells per block
+# hog_channel = 'ALL' # Can be 0, 1, 2, or "ALL"
+# spatial_size = (32, 32) # Spatial binning dimensions
+# hist_bins = 32    # Number of histogram bins
+# spatial_feat = False # Spatial features on or off
+# hist_feat = False # Histogram features on or off
+# hog_feat = True # HOG features on or off
+# y_start_stop = [None, None] # Min and max in y to search in slide_window()
+
+# parametsrs1 for different feature extraction techniques
+color_space = 'YUV' # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
+orient = 9  # HOG orientations
+pix_per_cell = 8 # HOG pixels per cell
 cell_per_block = 2 # HOG cells per block
-hog_channel = 'ALL' # Can be 0, 1, 2, or "ALL"
-spatial_size = (32, 32) # Spatial binning dimensions
-hist_bins = 32    # Number of histogram bins
-spatial_feat = False # Spatial features on or off
-hist_feat = False # Histogram features on or off
+hog_channel = 0 # Can be 0, 1, 2, or "ALL"
+spatial_size = (16, 16) # Spatial binning dimensions
+hist_bins = 16    # Number of histogram bins
+spatial_feat = True # Spatial features on or off
+hist_feat = True # Histogram features on or off
 hog_feat = True # HOG features on or off
 y_start_stop = [None, None] # Min and max in y to search in slide_window()
-
 
 def single_img_features(img, color_space='RGB', spatial_size=(32, 32),
                         hist_bins=32, orient=9,
@@ -111,7 +124,7 @@ def search_windows(img, windows, clf, scaler, color_space='RGB',
             on_windows.append(window)
     # 8) Return windows for positive detections
     return on_windows
-
+#
 # # importing vechile images
 # GTI_far = glob.glob('vehicles/vehicles/GTI_Far/*.png')
 # GTI_left =  glob.glob('vehicles/vehicles/GTI_Left/*.png')
@@ -131,7 +144,7 @@ def search_windows(img, windows, clf, scaler, color_space='RGB',
 # # to ensure each class has same number of samples
 # cars = vechiles
 # notcars = non_vechiles
-#
+# t = time.time()
 # car_features = extract_features(cars, color_space=color_space,
 #                                 spatial_size=spatial_size, hist_bins=hist_bins,
 #                                 orient=orient, pix_per_cell=pix_per_cell,
@@ -148,10 +161,12 @@ def search_windows(img, windows, clf, scaler, color_space='RGB',
 # X = np.vstack((car_features, notcar_features)).astype(np.float64)
 # # Fit a per-column scaler
 # X_scaler = StandardScaler().fit(X)
-# joblib.dump(X_scaler,'Scaler.save')
+# joblib.dump(X_scaler,'Scaler2.save')
 #
 # # Apply the scaler to X
 # scaled_X = X_scaler.transform(X)
+# t2 = time.time()
+# print(round(t2-t, 2), 'Seconds to extract features and transform them...')
 # # labels
 # y = np.hstack((np.ones(len(car_features)), np.zeros(len(notcar_features))))
 #
@@ -188,7 +203,7 @@ def search_windows(img, windows, clf, scaler, color_space='RGB',
 # svc.fit(X_train, y_train)
 # t2 = time.time()
 # print(round(t2-t, 2), 'Seconds to train SVC...')
-# joblib.dump(svc,'linear_svm.plk')
+# joblib.dump(svc,'linear_svm2.plk')
 # # Check the score of the SVC
 # print('Train Accuracy of SVC = ', round(svc.score(X_train, y_train), 4))
 # print('Test Accuracy of SVC = ', round(svc.score(X_test, y_test), 4))
@@ -199,11 +214,11 @@ def search_windows(img, windows, clf, scaler, color_space='RGB',
 # print('For these',n_predict, 'labels: ', y_test[0:n_predict])
 # t2 = time.time()
 # print(round(t2-t, 5), 'Seconds to predict', n_predict,'labels with SVC')
+#
 
+svc = joblib.load('linear_svm1.plk')
+X_scaler = joblib.load ('Scaler1.save')
 
-svc = joblib.load('linear_svm.plk')
-X_scaler = joblib.load ('Scaler.save')
-# print(clf.best_params_)
 
 
 
@@ -235,11 +250,11 @@ def draw_labeled_bboxes(img, labels):
         # Define a bounding box based on min/max x and y
         bbox = ((np.min(nonzerox), np.min(nonzeroy)), (np.max(nonzerox), np.max(nonzeroy)))
         # Draw the box on the image
-        cv2.rectangle(img, bbox[0], bbox[1], (0,0,255), 6)
+        cv2.rectangle(img, bbox[0], bbox[1], (255,0,0), 6)
     # Return the image
     return img
 # different window size for diffrent regions of the image
-image = mpimg.imread('test_images/test1.jpg')
+image = mpimg.imread('test_images/test3.jpg')
 
 draw_image = np.copy(image)
 image = image.astype(np.float32)/255
@@ -247,15 +262,19 @@ img_shape = image.shape
 width = img_shape[1]
 height = img_shape[0]
 heat = np.zeros_like(image[:,:,0]).astype(np.float)
-windows = slide_window(image, x_start_stop=[0, width], y_start_stop=[ int(height*.55) , int(height*.923)],
-                       xy_window=(64, 64), xy_overlap=(0.75, 0.75))
-# windows2 = slide_window(image, x_start_stop=[0, width], y_start_stop=[ int(height * 0.05) + 67, int(height * 0.05) + 134],
-#                         xy_window=(116, 116), xy_overlap=(0.5, 0.5))
-# windows3 = slide_window(image, x_start_stop=[0, width], y_start_stop=[ int(height * 0.05) + 134, int(height * 0.05) + 201],
-#                         xy_window=(136, 136), xy_overlap=(0.5, 0.5))
-# windows4 = slide_window(image, x_start_stop=[0, width], y_start_stop=[int(height * 0.05) + 201, int(height * 0.923) ],
-#                         xy_window=(156, 156), xy_overlap=(0.5, 0.5))
-# windows = windows1 + windows2 + windows3 + windows4
+windows1 = slide_window(image, x_start_stop=[0, width], y_start_stop=[ ceil(height*.555) , ceil(height*.694)],
+                       xy_window=(64, 64), xy_overlap=(0.50, 0.50))
+windows2 = slide_window(image, x_start_stop=[0, width], y_start_stop=[ ceil(height*.555) , ceil(height*.694)],
+                        xy_window=(96, 96), xy_overlap=(0.50, 0.50))
+windows3 = slide_window(image, x_start_stop=[0, width], y_start_stop=[ ceil(height*.555) , ceil(height*.802)],
+                        xy_window=(128, 128), xy_overlap=(0.50, 0.50))
+windows4 = slide_window(image, x_start_stop=[0, width], y_start_stop=[ceil(height * 0.625) , ceil(height * 0.923) ],
+                        xy_window=(156, 156), xy_overlap=(0.50, 0.50))
+windows5 = slide_window(image, x_start_stop=[0, width], y_start_stop=[ceil(height * 0.625) , ceil(height * 0.923) ],
+                        xy_window=(136, 136), xy_overlap=(0.50, 0.50))
+windows6 = slide_window(image, x_start_stop=[0, width], y_start_stop=[ceil(height * 0.625) , ceil(height * 0.923) ],
+                        xy_window=(192, 192), xy_overlap=(0.50, 0.50))
+windows = windows1 + windows2 + windows3 + windows4
 
 
 hot_windows = search_windows(image, windows, svc, X_scaler, color_space=color_space,
@@ -267,14 +286,14 @@ hot_windows = search_windows(image, windows, svc, X_scaler, color_space=color_sp
 
 
 print(hot_windows)
-# window_img = draw_boxes(draw_image, hot_windows, color=(0, 0, 255), thick=6)
+window_img = draw_boxes(draw_image, hot_windows, color=(0, 0, 255), thick=6)
 
-# plt.imshow(window_img)
+plt.imshow(window_img)
 # plt.imsave('windows_pred.png',window_img)
-# plt.show()
+plt.show()
 heat = add_heat(heat,hot_windows)
 # Apply threshold to help remove false positives
-heat = apply_threshold(heat,5)
+heat = apply_threshold(heat,1)
 
 # Visualize the heatmap when displaying
 heatmap = np.clip(heat, 0, 255)
