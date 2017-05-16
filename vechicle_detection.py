@@ -15,6 +15,7 @@ from sklearn import svm
 from sklearn.model_selection import GridSearchCV
 from sklearn.externals import joblib
 from scipy.ndimage.measurements import label
+from moviepy.editor import VideoFileClip
 
 # # parametsrs2 for different feature extraction techniques
 # color_space = 'YCrCb' # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
@@ -124,103 +125,6 @@ def search_windows(img, windows, clf, scaler, color_space='RGB',
             on_windows.append(window)
     # 8) Return windows for positive detections
     return on_windows
-#
-# # importing vechile images
-# GTI_far = glob.glob('vehicles/vehicles/GTI_Far/*.png')
-# GTI_left =  glob.glob('vehicles/vehicles/GTI_Left/*.png')
-# GTI_right =  glob.glob('vehicles/vehicles/GTI_Right/*.png')
-# GTI_middleclose =  glob.glob('vehicles/vehicles/GTI_MiddleClose/*.png')
-# KITTI_extracted =   glob.glob('vehicles/vehicles/KITTI_extracted/*.png')
-# vechiles = GTI_far + GTI_left + GTI_right + GTI_middleclose + KITTI_extracted
-#
-# # importing non vechile images
-# GTI = glob.glob('non-vehicles/non-vehicles/GTI/*.png')
-# extras = glob.glob('non-vehicles/non-vehicles/Extras/*.png')
-# non_vechiles = GTI + extras
-#
-# print('Number of images in vechile set = ', len(vechiles))
-# print('Number of images in non-vechicles set = ', len(non_vechiles))
-#
-# # to ensure each class has same number of samples
-# cars = vechiles
-# notcars = non_vechiles
-# t = time.time()
-# car_features = extract_features(cars, color_space=color_space,
-#                                 spatial_size=spatial_size, hist_bins=hist_bins,
-#                                 orient=orient, pix_per_cell=pix_per_cell,
-#                                 cell_per_block=cell_per_block,
-#                                 hog_channel=hog_channel, spatial_feat=spatial_feat,
-#                                 hist_feat=hist_feat, hog_feat=hog_feat)
-# notcar_features = extract_features(notcars, color_space=color_space,
-#                                    spatial_size=spatial_size, hist_bins=hist_bins,
-#                                    orient=orient, pix_per_cell=pix_per_cell,
-#                                    cell_per_block=cell_per_block,
-#                                    hog_channel=hog_channel, spatial_feat=spatial_feat,
-#                                    hist_feat=hist_feat, hog_feat=hog_feat)
-#
-# X = np.vstack((car_features, notcar_features)).astype(np.float64)
-# # Fit a per-column scaler
-# X_scaler = StandardScaler().fit(X)
-# joblib.dump(X_scaler,'Scaler2.save')
-#
-# # Apply the scaler to X
-# scaled_X = X_scaler.transform(X)
-# t2 = time.time()
-# print(round(t2-t, 2), 'Seconds to extract features and transform them...')
-# # labels
-# y = np.hstack((np.ones(len(car_features)), np.zeros(len(notcar_features))))
-#
-# # splitting the data into train and test set, 20 percent of data as test set.
-# rand_state = np.random.randint(0, 100)
-# X_train, X_test, y_train, y_test = train_test_split(
-#     scaled_X, y, test_size=0.2, random_state=rand_state)
-#
-# print('Using:',orient,'orientations',pix_per_cell,
-#     'pixels per cell and', cell_per_block,'cells per block')
-# print('Feature vector length:', len(X_train[0]))
-#
-# # parameters = {'kernel':('linear', 'rbf'), 'C':[1, 10]}
-# # svr = svm.SVC()
-# # clf = GridSearchCV(svr, parameters)
-# #
-# # # Check the training time for the SVC
-# # t=time.time()
-# # clf.fit(X_train, y_train)
-# # t2 = time.time()
-# # print(round(t2-t, 2), 'Seconds to train SVM...')
-# #
-# # # saving classifier for best results
-# # print(clf.best_params_)
-# # joblib.dump(clf, 'svm_model.pkl')
-# #
-# # # Check the score of the SVC
-# # print('Test Accuracy of SVM = ', round(clf.score(X_test, y_test), 4))
-# # # Check the prediction time for a single sample
-# # t=time.time()
-# svc = LinearSVC()
-# # Check the training time for the SVC
-# t=time.time()
-# svc.fit(X_train, y_train)
-# t2 = time.time()
-# print(round(t2-t, 2), 'Seconds to train SVC...')
-# joblib.dump(svc,'linear_svm2.plk')
-# # Check the score of the SVC
-# print('Train Accuracy of SVC = ', round(svc.score(X_train, y_train), 4))
-# print('Test Accuracy of SVC = ', round(svc.score(X_test, y_test), 4))
-# # Check the prediction time for a single sample
-# t=time.time()
-# n_predict = 10
-# print('My SVC predicts: ', svc.predict(X_test[0:n_predict]))
-# print('For these',n_predict, 'labels: ', y_test[0:n_predict])
-# t2 = time.time()
-# print(round(t2-t, 5), 'Seconds to predict', n_predict,'labels with SVC')
-#
-
-svc = joblib.load('linear_svm1.plk')
-X_scaler = joblib.load ('Scaler1.save')
-
-
-
 
 
 def add_heat(heatmap, bbox_list):
@@ -250,64 +154,173 @@ def draw_labeled_bboxes(img, labels):
         # Define a bounding box based on min/max x and y
         bbox = ((np.min(nonzerox), np.min(nonzeroy)), (np.max(nonzerox), np.max(nonzeroy)))
         # Draw the box on the image
-        cv2.rectangle(img, bbox[0], bbox[1], (255,0,0), 6)
+        cv2.rectangle(img, bbox[0], bbox[1], (0,0,255), 6)
     # Return the image
     return img
+
+
 # different window size for diffrent regions of the image
-image = mpimg.imread('test_images/test3.jpg')
-
-draw_image = np.copy(image)
-image = image.astype(np.float32)/255
-img_shape = image.shape
-width = img_shape[1]
-height = img_shape[0]
-heat = np.zeros_like(image[:,:,0]).astype(np.float)
-windows1 = slide_window(image, x_start_stop=[0, width], y_start_stop=[ ceil(height*.555) , ceil(height*.694)],
-                       xy_window=(64, 64), xy_overlap=(0.50, 0.50))
-windows2 = slide_window(image, x_start_stop=[0, width], y_start_stop=[ ceil(height*.555) , ceil(height*.694)],
-                        xy_window=(96, 96), xy_overlap=(0.50, 0.50))
-windows3 = slide_window(image, x_start_stop=[0, width], y_start_stop=[ ceil(height*.555) , ceil(height*.802)],
-                        xy_window=(128, 128), xy_overlap=(0.50, 0.50))
-windows4 = slide_window(image, x_start_stop=[0, width], y_start_stop=[ceil(height * 0.625) , ceil(height * 0.923) ],
-                        xy_window=(156, 156), xy_overlap=(0.50, 0.50))
-windows5 = slide_window(image, x_start_stop=[0, width], y_start_stop=[ceil(height * 0.625) , ceil(height * 0.923) ],
-                        xy_window=(136, 136), xy_overlap=(0.50, 0.50))
-windows6 = slide_window(image, x_start_stop=[0, width], y_start_stop=[ceil(height * 0.625) , ceil(height * 0.923) ],
-                        xy_window=(192, 192), xy_overlap=(0.50, 0.50))
-windows = windows1 + windows2 + windows3 + windows4
-
-
-hot_windows = search_windows(image, windows, svc, X_scaler, color_space=color_space,
-                             spatial_size=spatial_size, hist_bins=hist_bins,
-                             orient=orient, pix_per_cell=pix_per_cell,
-                             cell_per_block=cell_per_block,
-                             hog_channel=hog_channel, spatial_feat=spatial_feat,
-                             hist_feat=hist_feat, hog_feat=hog_feat)
+def find_cars(image):
+    draw_image = np.copy(image)
+    image = image.astype(np.float32)/255
+    img_shape = image.shape
+    width = img_shape[1]
+    height = img_shape[0]
+    heat = np.zeros_like(image[:,:,0]).astype(np.float)
+    windows1 = slide_window(image, x_start_stop=[0, width], y_start_stop=[ ceil(height*.555) , ceil(height*.694)],
+                           xy_window=(64, 64), xy_overlap=(0.50, 0.50))
+    windows2 = slide_window(image, x_start_stop=[0, width], y_start_stop=[ ceil(height*.555) , ceil(height*.694)],
+                            xy_window=(96, 96), xy_overlap=(0.50, 0.50))
+    windows3 = slide_window(image, x_start_stop=[0, width], y_start_stop=[ ceil(height*.555) , ceil(height*.802)],
+                            xy_window=(128, 128), xy_overlap=(0.50, 0.50))
+    windows4 = slide_window(image, x_start_stop=[0, width], y_start_stop=[ceil(height * 0.625) , ceil(height * 0.923) ],
+                            xy_window=(192, 192), xy_overlap=(0.50, 0.50))
+    # windows5 = slide_window(image, x_start_stop=[0, width], y_start_stop=[ceil(height * 0.625) , ceil(height * 0.923) ],
+    #                         xy_window=(136, 136), xy_overlap=(0.50, 0.50))
+    # windows6 = slide_window(image, x_start_stop=[0, width], y_start_stop=[ceil(height * 0.625) , ceil(height * 0.923) ],
+    #                         xy_window=(192, 192), xy_overlap=(0.50, 0.50))
+    windows = windows1 + windows2 + windows3 + windows4
 
 
-print(hot_windows)
-window_img = draw_boxes(draw_image, hot_windows, color=(0, 0, 255), thick=6)
+    hot_windows = search_windows(image, windows, svc, X_scaler, color_space=color_space,
+                                 spatial_size=spatial_size, hist_bins=hist_bins,
+                                 orient=orient, pix_per_cell=pix_per_cell,
+                                 cell_per_block=cell_per_block,
+                                 hog_channel=hog_channel, spatial_feat=spatial_feat,
+                                 hist_feat=hist_feat, hog_feat=hog_feat)
 
-plt.imshow(window_img)
-# plt.imsave('windows_pred.png',window_img)
-plt.show()
-heat = add_heat(heat,hot_windows)
-# Apply threshold to help remove false positives
-heat = apply_threshold(heat,1)
 
-# Visualize the heatmap when displaying
-heatmap = np.clip(heat, 0, 255)
+    print(hot_windows)
+    window_img = draw_boxes(draw_image, hot_windows, color=(0, 0, 255), thick=6)
 
-# Find final boxes from heatmap using label function
-labels = label(heatmap)
-draw_img = draw_labeled_bboxes(np.copy(image), labels)
+    # plt.imshow(window_img)
+    # # plt.imsave('windows_pred.png',window_img)
+    # plt.show()
+    heat = add_heat(heat,hot_windows)
+    # Apply threshold to help remove false positives
+    heat = apply_threshold(heat,1)
 
-fig = plt.figure()
-plt.subplot(121)
-plt.imshow(draw_img)
-plt.title('Car Positions')
-plt.subplot(122)
-plt.imshow(heatmap, cmap='hot')
-plt.title('Heat Map')
-fig.tight_layout()
-plt.show()
+    # Visualize the heatmap when displaying
+    heatmap = np.clip(heat, 0, 255)
+
+    # Find final boxes from heatmap using label function
+    labels = label(heatmap)
+    draw_img = draw_labeled_bboxes(np.copy(image), labels)
+
+
+    # fig = plt.figure()
+    # plt.subplot(121)
+    # plt.imshow(draw_img)
+    # plt.title('Car Positions')
+    # plt.subplot(122)
+    # plt.imshow(heatmap, cmap='hot')
+    # plt.title('Heat Map')
+    # fig.tight_layout()
+    # plt.show()
+    return draw_img
+
+
+
+# importing vechile images
+GTI_far = glob.glob('vehicles/vehicles/GTI_Far/*.png')
+GTI_left =  glob.glob('vehicles/vehicles/GTI_Left/*.png')
+GTI_right =  glob.glob('vehicles/vehicles/GTI_Right/*.png')
+GTI_middleclose =  glob.glob('vehicles/vehicles/GTI_MiddleClose/*.png')
+KITTI_extracted =   glob.glob('vehicles/vehicles/KITTI_extracted/*.png')
+vechiles = GTI_far + GTI_left + GTI_right + GTI_middleclose + KITTI_extracted
+
+# importing non vechile images
+GTI = glob.glob('non-vehicles/non-vehicles/GTI/*.png')
+extras = glob.glob('non-vehicles/non-vehicles/Extras/*.png')
+non_vechiles = GTI + extras
+
+print('Number of images in vechile set = ', len(vechiles))
+print('Number of images in non-vechicles set = ', len(non_vechiles))
+
+
+cars = vechiles
+notcars = non_vechiles
+t = time.time()
+car_features = extract_features(cars, color_space=color_space,
+                                spatial_size=spatial_size, hist_bins=hist_bins,
+                                orient=orient, pix_per_cell=pix_per_cell,
+                                cell_per_block=cell_per_block,
+                                hog_channel=hog_channel, spatial_feat=spatial_feat,
+                                hist_feat=hist_feat, hog_feat=hog_feat)
+notcar_features = extract_features(notcars, color_space=color_space,
+                                   spatial_size=spatial_size, hist_bins=hist_bins,
+                                   orient=orient, pix_per_cell=pix_per_cell,
+                                   cell_per_block=cell_per_block,
+                                   hog_channel=hog_channel, spatial_feat=spatial_feat,
+                                   hist_feat=hist_feat, hog_feat=hog_feat)
+
+X = np.vstack((car_features, notcar_features)).astype(np.float64)
+# Fit a per-column scaler
+X_scaler = StandardScaler().fit(X)
+joblib.dump(X_scaler,'models/Scaler1.save')
+
+# Apply the scaler to X
+scaled_X = X_scaler.transform(X)
+t2 = time.time()
+print(round(t2-t, 2), 'Seconds to extract features and transform them...')
+# labels
+y = np.hstack((np.ones(len(car_features)), np.zeros(len(notcar_features))))
+
+# splitting the data into train and test set, 20 percent of data as test set.
+rand_state = np.random.randint(0, 100)
+X_train, X_test, y_train, y_test = train_test_split(
+    scaled_X, y, test_size=0.2, random_state=rand_state)
+
+print('Using:',orient,'orientations',pix_per_cell,
+    'pixels per cell and', cell_per_block,'cells per block')
+print('Feature vector length:', len(X_train[0]))
+
+## parameter tuning
+# parameters = {'kernel':('linear', 'rbf'), 'C':[1, 10]}
+# svr = svm.SVC()
+# clf = GridSearchCV(svr, parameters)
+#
+# # Check the training time for the SVC
+# t=time.time()
+# clf.fit(X_train, y_train)
+# t2 = time.time()
+# print(round(t2-t, 2), 'Seconds to train SVM...')
+#
+# # saving classifier for best results
+# print(clf.best_params_)
+# joblib.dump(clf, 'svm_model.pkl')
+#
+# # Check the score of the SVC
+# print('Test Accuracy of SVM = ', round(clf.score(X_test, y_test), 4))
+# # Check the prediction time for a single sample
+# t=time.time()
+
+
+## classification using linear svm
+svc = LinearSVC()
+# Check the training time for the SVC
+t=time.time()
+svc.fit(X_train, y_train)
+t2 = time.time()
+print(round(t2-t, 2), 'Seconds to train SVC...')
+joblib.dump(svc,'models/linear_svm1.plk')
+# Check the score of the SVC
+print('Train Accuracy of SVC = ', round(svc.score(X_train, y_train), 4))
+print('Test Accuracy of SVC = ', round(svc.score(X_test, y_test), 4))
+# Check the prediction time for a single sample
+t=time.time()
+n_predict = 10
+print('My SVC predicts: ', svc.predict(X_test[0:n_predict]))
+print('For these',n_predict, 'labels: ', y_test[0:n_predict])
+t2 = time.time()
+print(round(t2-t, 5), 'Seconds to predict', n_predict,'labels with SVC')
+
+# loading previous trained model
+svc = joblib.load('models/linear_svm1.plk')
+X_scaler = joblib.load ('models/Scaler1.save')
+# image = mpimg.imread('test_images/test5.jpg')
+# find_cars(image)
+
+video = VideoFileClip('project_video.mp4')
+input = video.fl_image(find_cars)
+input.write_videofile('project_video_output.mp4', audio = False)

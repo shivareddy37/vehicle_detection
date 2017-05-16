@@ -4,41 +4,6 @@ import cv2
 from skimage.feature import hog
 
 
-# Fuction to give a masked image only with region of intrest
-def region_of_intrest(image):
-
-    bottom_left_x = 0
-    bottom_left_y = int(image.shape[0] * 0.95)
-    top_left_x = 0
-    top_left_y = int(image.shape[0] * .55)
-    top_right_x = int(image.shape[1])
-    top_right_y = int(image.shape[0] * .55)
-    bottom_right_x = int(image.shape[1])
-    bottom_right_y = int(image.shape[0] * 0.95)
-
-
-    vertices = np.array([[(bottom_left_x, bottom_left_y),
-                          (top_left_x,top_left_y),
-                          (top_right_x,top_right_y),
-                          ( bottom_right_x, bottom_right_y)]], dtype=np.int32)
-
-    # print(image.shape)
-    # print (vertices)
-
-    mask = np.zeros_like(image)
-    # defining a 3 channel or 1 channel color to fill the mask with depending on the input image
-    if len(image.shape) > 2:
-        channel_count = image.shape[2]  # i.e. 3 or 4 depending on your image
-        ignore_mask_color = (255,) * channel_count
-    else:
-        ignore_mask_color = 255
-
-    # filling pixels inside the polygon defined by "vertices" with the fill color
-    cv2.fillPoly(mask, vertices, ignore_mask_color)
-
-    # returning the image only where mask pixels are nonzero
-    masked_image = cv2.bitwise_and(image, mask)
-    return masked_image
 
 
 # Function to return HOG features and visualization
@@ -121,7 +86,7 @@ def extract_features(imgs, color_space='RGB', spatial_size=(32, 32),
                 for channel in range(feature_image.shape[2]):
                     hog_features.append(get_hog_features(feature_image[:,:,channel],
                                         orient, pix_per_cell, cell_per_block,
-                                        vis=False, feature_vec=True))
+                                        vis=True, feature_vec=True))
                 hog_features = np.ravel(hog_features)
             else:
                 hog_features = get_hog_features(feature_image[:,:,hog_channel], orient,
