@@ -1,5 +1,5 @@
 ﻿# vehicle_detection
-vehicle detection in a video stream.
+The project is done as part of Udacity self Driving Car Nano Degree Program. vehicle detection in a video stream.
 
 The project deal with training a model for vehicle classification and then detects and tracks the vehicle in a video stream.
 
